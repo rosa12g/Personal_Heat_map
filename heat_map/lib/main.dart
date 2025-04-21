@@ -1,122 +1,177 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+import 'firebase_options.dart';
+import 'screens/heat_map.dart';
+import 'screens/status.dart';
+import 'screens/filters.dart';
+import 'theme/app_theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    await FirebaseAuth.instance.signInAnonymously();
+    print('Main: Firebase initialized and signed in anonymously');
+  } catch (e) {
+    print('Main: Error initializing Firebase or signing in: $e');
+  }
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    print('MyApp: Building MaterialApp');
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      title: 'Step Net',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.darkTheme().copyWith(
+        scaffoldBackgroundColor: Colors.transparent,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MainScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class MainScreen extends StatefulWidget {
+  const MainScreen({Key? key}) : super(key: key);
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _MainScreenState createState() => _MainScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _MainScreenState extends State<MainScreen> {
+  int _selectedIndex = 0;
+  bool _showDebugScreen = false;
 
-  void _incrementCounter() {
+  static List<Widget> _screens = [
+    const HeatmapScreen(),
+    StatsScreen(),
+    const FiltersScreen(),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    print('MainScreen: initState called');
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    print('MainScreen: dispose called');
+  }
+
+  void _onNavBarTapped(int index) {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _selectedIndex = index;
+      print('MainScreen: Nav bar tapped, index: $_selectedIndex');
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    print('MainScreen: Building UI, _showDebugScreen=$_showDebugScreen');
+    if (_showDebugScreen) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: const Center(
+          child: Text(
+            'Debug Screen: If you see this, rendering works!',
+            style: TextStyle(color: Colors.white, fontSize: 24),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF1A1A2E),
+              Color(0xFF16213E),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    ShaderMask(
+                      shaderCallback: (bounds) => const LinearGradient(
+                        colors: [Colors.cyan, Colors.tealAccent],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ).createShader(bounds),
+                      child: const Text(
+                        'StepNet',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black45,
+                              offset: Offset(2, 2),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 16, left: 8, right: 8, bottom: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black45,
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: _screens[_selectedIndex],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      bottomNavigationBar: CurvedNavigationBar(
+        backgroundColor: Colors.transparent,
+        color: const Color(0xFF1A1A2E),
+        buttonBackgroundColor: Colors.cyan,
+        height: 60,
+        animationDuration: const Duration(milliseconds: 300),
+        animationCurve: Curves.easeInOut,
+        index: _selectedIndex,
+        onTap: _onNavBarTapped,
+        items: const [
+          Icon(Icons.map, size: 30, color: Colors.white),
+          Icon(Icons.bar_chart, size: 30, color: Colors.white),
+          Icon(Icons.filter_list, size: 30, color: Colors.white),
+        ],
+      ),
     );
   }
 }

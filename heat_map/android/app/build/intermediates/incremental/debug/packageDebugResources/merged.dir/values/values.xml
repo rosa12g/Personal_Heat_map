@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="firebase_database_url" translatable="false">https://heatmap-102a9-default-rtdb.firebaseio.com</string>
+    <string name="gcm_defaultSenderId" translatable="false">333545597291</string>
+    <string name="google_api_key" translatable="false">AIzaSyBuj-UXqbbVU_shh3VtMihm8kdKT8Y9ea4</string>
+    <string name="google_app_id" translatable="false">1:333545597291:android:df2081af854f6ea743c42e</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyBuj-UXqbbVU_shh3VtMihm8kdKT8Y9ea4</string>
+    <string name="google_storage_bucket" translatable="false">heatmap-102a9.firebasestorage.app</string>
+    <string name="project_id" translatable="false">heatmap-102a9</string>
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        
+        <item name="android:windowBackground">@drawable/launch_background</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">?android:colorBackground</item>
+    </style>
+</resources>
