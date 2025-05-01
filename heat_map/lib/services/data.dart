@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:isolate';
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:latlong2/latlong.dart' as latlng;
@@ -36,7 +37,6 @@ class DataService {
   }) async {
     print('DataService: Starting location initialization');
     try {
-      // Check and request fine location permission
       var fineStatus = await Permission.locationWhenInUse.status;
       if (!fineStatus.isGranted) {
         fineStatus = await Permission.locationWhenInUse.request();
@@ -48,18 +48,15 @@ class DataService {
         }
       }
 
-      // Check and request background location
       var backgroundStatus = await Permission.locationAlways.status;
       if (!backgroundStatus.isGranted) {
         backgroundStatus = await Permission.locationAlways.request();
         print('DataService: Background location permission status: $backgroundStatus');
         if (backgroundStatus.isDenied || backgroundStatus.isPermanentlyDenied) {
           print('DataService: Background location permission denied');
-          // Continue without background permission (worked before)
         }
       }
 
-      // Check location service
       final serviceEnabled = await _location.serviceEnabled();
       if (!serviceEnabled) {
         final enabled = await _location.requestService();
@@ -71,14 +68,12 @@ class DataService {
         }
       }
 
-      // Configure location settings
       await _location.changeSettings(
         interval: 1000,
         distanceFilter: 5,
         accuracy: LocationAccuracy.high,
       );
 
-      // Get initial location
       print('DataService: Attempting to get location');
       final initialLoc = await _location.getLocation().timeout(
         const Duration(seconds: 30),
@@ -201,6 +196,107 @@ class DataService {
       print('DataService: Error in heatmap isolate: $e');
       sendPort.send([]);
     }
+  }
+
+  Stream<Map<String, dynamic>> getStats(String deviceId) {
+    return _firestore
+        .collection('locations')
+        .where('deviceId', isEqualTo: deviceId)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      try {
+        if (!_isFirebaseInitialized) {
+          print('DataService: Firebase not initialized, returning empty stats');
+          return {};
+        }
+
+        final locations = snapshot.docs
+            .map((doc) => {
+                  'latitude': doc['latitude'] as double?,
+                  'longitude': doc['longitude'] as double?,
+                  'timestamp': (doc['timestamp'] as Timestamp?)?.toDate(),
+                })
+            .toList();
+
+        if (locations.isEmpty) {
+          return {
+            'timeSpent': '0 min',
+            'distance': '0.0 km',
+            'mostVisited': 'N/A',
+            'heatScore': '0',
+          };
+        }
+
+        // Time Spent
+
+        double totalMinutes = 0;
+        for (int i = 1; i < locations.length; i++) {
+          final prevTime = locations[i - 1]['timestamp'] as DateTime?;
+          final currTime = locations[i]['timestamp'] as DateTime?;
+          if (prevTime != null && currTime != null) {
+            final diff = currTime.difference(prevTime).inMinutes;
+            if (diff <= 60) {
+              totalMinutes += diff;
+            }
+          }
+        }
+        final hours = (totalMinutes / 60).floor();
+        final minutes = (totalMinutes % 60).round();
+        final timeSpent = hours > 0 ? '$hours h $minutes min' : '$minutes min';
+
+        // Distance Traveled
+        double totalDistance = 0;
+        const distance = latlng.Distance();
+        for (int i = 1; i < locations.length; i++) {
+          final prevLat = locations[i - 1]['latitude'] as double?;
+          final prevLng = locations[i - 1]['longitude'] as double?;
+          final currLat = locations[i]['latitude'] as double?;
+          final currLng = locations[i]['longitude'] as double?;
+          if (prevLat != null && prevLng != null && currLat != null && currLng != null) {
+            totalDistance += distance(
+              latlng.LatLng(prevLat, prevLng),
+              latlng.LatLng(currLat, currLng),
+            );
+          }
+        }
+        final distanceKm = (totalDistance / 1000).toStringAsFixed(1);
+
+        // Most Visited
+        Map<String, int> grid = {};
+        for (var loc in locations) {
+          final lat = (loc['latitude'] as double?)?.toStringAsFixed(4);
+          final lng = (loc['longitude'] as double?)?.toStringAsFixed(4);
+          if (lat != null && lng != null) {
+            final key = '$lat,$lng';
+            grid[key] = (grid[key] ?? 0) + 1;
+          }
+        }
+        final mostVisitedEntry = grid.entries.isNotEmpty
+            ? grid.entries.reduce((a, b) => a.value > b.value ? a : b)
+            : null;
+        final mostVisited = mostVisitedEntry != null
+            ? mostVisitedEntry.key 
+            : 'N/A';
+
+        // Heat Score
+        final heatmapPoints = await _computeHeatmap(deviceId);
+        final avgIntensity = heatmapPoints.isNotEmpty
+            ? heatmapPoints.map((p) => p['intensity'] as double).reduce((a, b) => a + b) /
+                heatmapPoints.length
+            : 0.0;
+        final heatScore = (avgIntensity * 100).round().toString();
+
+        return {
+          'timeSpent': timeSpent,
+          'distance': '$distanceKm km',
+          'mostVisited': mostVisited,
+          'heatScore': heatScore,
+        };
+      } catch (e) {
+        print('DataService: Error computing stats: $e');
+        return {};
+      }
+    });
   }
 
   void dispose() {

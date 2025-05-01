@@ -21,6 +21,7 @@ dependencies:
   curved_navigation_bar: ^1.0.6
   geolocator: ^14.0.0
   device_info_plus: ^11.3.3
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:

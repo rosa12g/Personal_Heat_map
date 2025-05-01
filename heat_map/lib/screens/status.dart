@@ -10,7 +10,6 @@ StatsScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Match deviceId format from HeatmapScreen
     final deviceId = 'device_${DateTime.now().millisecondsSinceEpoch}';
 
     return StreamBuilder<Map<String, dynamic>>(

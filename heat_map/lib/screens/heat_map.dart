@@ -25,7 +25,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   List<Map<String, dynamic>> _heatmapPoints = [];
 
   final String deviceId = 'device_${DateTime.now().millisecondsSinceEpoch}';
-  static const _defaultPosition = latlng.LatLng(9.03, 38.74); // Addis Ababa
+  static const _defaultPosition = latlng.LatLng(9.03, 38.74); 
 
   @override
   void initState() {
